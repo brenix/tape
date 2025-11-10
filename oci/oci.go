@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	ociclient "github.com/fluxcd/pkg/oci/client"
+	ociclient "github.com/fluxcd/pkg/oci"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
