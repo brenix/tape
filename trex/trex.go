@@ -100,7 +100,7 @@ func (r *Trex) Run(ctx context.Context) error {
 	if err := certs.NewGenerator(zerolog.Ctx(ctx)).
 		MakeDevCert(&certs.CertGenConfig{
 			CommonName:  "localhost",
-			CACertPath:  r.caCert,
+			CertCAPath:  r.caCert,
 			CertKeyPath: r.tlsKey,
 			CertPath:    r.tlsCert,
 		}); err != nil {
