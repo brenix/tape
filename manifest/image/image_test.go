@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/errordeveloper/tape/manifest/imageutil"
 	. "github.com/onsi/gomega"
-	kimage "sigs.k8s.io/kustomize/api/image"
 )
 
 func TestDedup(t *testing.T) {
@@ -50,7 +50,7 @@ func TestDedup(t *testing.T) {
 	for i := range cases {
 		tc := cases[i]
 
-		name, tag, digest := kimage.Split(tc.image)
+		name, tag, digest := imageutil.Split(tc.image)
 		list.Append(Image{
 			Sources: []Source{{
 				OriginalRef: tc.image,
