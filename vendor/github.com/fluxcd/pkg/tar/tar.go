@@ -39,6 +39,12 @@ type tarOpts struct {
 	// maxUntarSize represents the limit size (bytes) for archives being decompressed by Untar.
 	// When max is a negative value the size checks are disabled.
 	maxUntarSize int
+
+	// skipSymlinks ignores symlinks instead of failing the decompression.
+	skipSymlinks bool
+
+	// skipGzip skip gzip reader an un-tar a plain tar file.
+	skipGzip bool
 }
 
 // Untar reads the gzip-compressed tar file from r and writes it into dir.
@@ -75,11 +81,18 @@ func Untar(r io.Reader, dir string, inOpts ...TarOption) (err error) {
 	}
 
 	madeDir := map[string]bool{}
-	zr, err := gzip.NewReader(r)
-	if err != nil {
-		return fmt.Errorf("requires gzip-compressed body: %w", err)
+	var tr *tar.Reader
+	if opts.skipGzip {
+		tr = tar.NewReader(r)
+	} else {
+		zr, err := gzip.NewReader(r)
+		if err != nil {
+			return fmt.Errorf("requires gzip-compressed body: %w", err)
+		}
+
+		tr = tar.NewReader(zr)
 	}
-	tr := tar.NewReader(zr)
+
 	processedBytes := 0
 	t0 := time.Now()
 
@@ -116,7 +129,7 @@ func Untar(r io.Reader, dir string, inOpts ...TarOption) (err error) {
 			// write will fail with the same error.
 			dir := filepath.Dir(abs)
 			if !madeDir[dir] {
-				if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(abs), 0o750); err != nil {
 					return err
 				}
 				madeDir[dir] = true
@@ -164,10 +177,14 @@ func Untar(r io.Reader, dir string, inOpts ...TarOption) (err error) {
 				}
 			}
 		case mode.IsDir():
-			if err := os.MkdirAll(abs, 0o755); err != nil {
+			if err := os.MkdirAll(abs, 0o750); err != nil {
 				return err
 			}
 			madeDir[abs] = true
+		case mode&os.ModeSymlink == os.ModeSymlink:
+			if !opts.skipSymlinks {
+				return fmt.Errorf("tar file entry %s is a symlink, which is not allowed in this context", f.Name)
+			}
 		default:
 			return fmt.Errorf("tar file entry %s contained unsupported file type %v", f.Name, mode)
 		}

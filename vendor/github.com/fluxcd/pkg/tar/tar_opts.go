@@ -27,6 +27,20 @@ func WithMaxUntarSize(max int) TarOption {
 	}
 }
 
+// WithSkipSymlinks allows for symlinks to be present in the tarball and skips them when decompressing.
+func WithSkipSymlinks() TarOption {
+	return func(t *tarOpts) {
+		t.skipSymlinks = true
+	}
+}
+
+// WithSkipGzip allows for un-taring plain tar files too, that aren't gzipped.
+func WithSkipGzip() TarOption {
+	return func(t *tarOpts) {
+		t.skipGzip = true
+	}
+}
+
 func (t *tarOpts) applyOpts(tarOpts ...TarOption) {
 	for _, clientOpt := range tarOpts {
 		clientOpt(t)
