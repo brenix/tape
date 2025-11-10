@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"strings"
 
-	kimage "sigs.k8s.io/kustomize/api/image"
-
 	"github.com/errordeveloper/tape/attest"
 	"github.com/errordeveloper/tape/attest/manifest"
 	"github.com/errordeveloper/tape/manifest/imagecopier"
 	"github.com/errordeveloper/tape/manifest/imageresolver"
 	"github.com/errordeveloper/tape/manifest/imagescanner"
+	"github.com/errordeveloper/tape/manifest/imageutil"
 	"github.com/errordeveloper/tape/manifest/loader"
 	"github.com/errordeveloper/tape/manifest/packager"
 	"github.com/errordeveloper/tape/manifest/updater"
@@ -33,7 +32,7 @@ type TapePackageCommand struct {
 }
 
 func (c *TapePackageCommand) ValidateFlags() error {
-	name, tag, digest := kimage.Split(c.OutputImage)
+	name, tag, digest := imageutil.Split(c.OutputImage)
 
 	invalidOutputImageErr := func(reason string, values ...interface{}) error {
 		return fmt.Errorf("invalid output image name %q: "+reason, values...)

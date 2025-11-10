@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	kimage "sigs.k8s.io/kustomize/api/image"
+	"github.com/errordeveloper/tape/manifest/imageutil"
 )
 
 const (
@@ -21,7 +21,7 @@ func NewAliasCache[T imageList](imageNames T) AliasCache {
 	switch imageNames := any(imageNames).(type) {
 	case []string:
 		for i := range imageNames {
-			names[i] = newImageName(kimage.Split(imageNames[i]))
+			names[i] = newImageName(imageutil.Split(imageNames[i]))
 		}
 	case []Image:
 		for i := range imageNames {

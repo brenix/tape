@@ -8,11 +8,11 @@ import (
 
 	"crypto/sha256"
 
-	kimage "sigs.k8s.io/kustomize/api/image"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 
 	"github.com/errordeveloper/tape/attest"
 	"github.com/errordeveloper/tape/attest/digest"
+	"github.com/errordeveloper/tape/manifest/imageutil"
 	"github.com/errordeveloper/tape/manifest/types"
 )
 
@@ -90,7 +90,7 @@ func (s *DefaultImageScanner) GetImages() *types.ImageList {
 	images := types.NewImageList(s.directory)
 	for _, v := range s.trackers {
 		for _, vv := range v.SetValueArgs() {
-			name, tag, digest := kimage.Split(vv.Value)
+			name, tag, digest := imageutil.Split(vv.Value)
 			images.Append(types.Image{
 				Sources: []types.Source{{
 					ImageSourceLocation: types.ImageSourceLocation{

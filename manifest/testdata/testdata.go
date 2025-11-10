@@ -240,37 +240,67 @@ var baseYAMLCases = []TestCase{
 			"webhooks/tekton-mutating-webhooks.yaml",
 			"webhooks/tekton-validating-webhooks.yaml",
 		},
-		NumRelatedTags: 6,
+		NumRelatedTags: 4,
 		Expected: []types.Image{
 			{
 				Sources: []types.Source{{
 					ImageSourceLocation: types.ImageSourceLocation{
 						Manifest:       "base/tekton-base.yaml",
-						ManifestDigest: "c2cbc6d7a3c30f99e2e504d5758d8e0ce140a8f444c4d944d85c3f29800bf8c5",
+						ManifestDigest: "d0f6dc1dc7afe7f8725075ee07f6bf8eb01dd246f41ea404ed32e9ab023425ba",
 						NodePath:       []string{"spec", "template", "spec", "containers", "image"},
 						Line:           64,
-						Column:         16,
+						Column:         18,
 					},
-					OriginalRef: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/controller:v0.40.2@sha256:dc7bc7d6607466b502d8dc22ba0598461d7477f608ab68aaff1ff4dedaa04f81",
+					OriginalRef: "ghcr.io/tektoncd/pipeline/events-a9042f7efb0cbade2a868a1ee5ddd52c:v1.6.0@sha256:a601df6f1ef7f031b004b108eb2d7c215577b3b5231a43fa6b0ae6bf5af31025",
 				}},
-				OriginalName: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/controller",
-				OriginalTag:  "v0.40.2",
-				Digest:       "sha256:dc7bc7d6607466b502d8dc22ba0598461d7477f608ab68aaff1ff4dedaa04f81",
+				OriginalName: "ghcr.io/tektoncd/pipeline/events-a9042f7efb0cbade2a868a1ee5ddd52c",
+				OriginalTag:  "v1.6.0",
+				Digest:       "sha256:a601df6f1ef7f031b004b108eb2d7c215577b3b5231a43fa6b0ae6bf5af31025",
 			},
 			{
 				Sources: []types.Source{{
 					ImageSourceLocation: types.ImageSourceLocation{
 						Manifest:       "base/tekton-base.yaml",
-						ManifestDigest: "c2cbc6d7a3c30f99e2e504d5758d8e0ce140a8f444c4d944d85c3f29800bf8c5",
+						ManifestDigest: "d0f6dc1dc7afe7f8725075ee07f6bf8eb01dd246f41ea404ed32e9ab023425ba",
+						NodePath:       []string{"spec", "template", "spec", "containers", "image"},
+						Line:           74,
+						Column:         18,
+					},
+					OriginalRef: "ghcr.io/tektoncd/pipeline/resolvers-ff86b24f130c42b88983d3c13993056d:v1.6.0@sha256:e77cc55c6e507c393be029335c765c6c34238ee48b49379428da3d01713e9293",
+				}},
+				OriginalName: "ghcr.io/tektoncd/pipeline/resolvers-ff86b24f130c42b88983d3c13993056d",
+				OriginalTag:  "v1.6.0",
+				Digest:       "sha256:e77cc55c6e507c393be029335c765c6c34238ee48b49379428da3d01713e9293",
+			},
+			{
+				Sources: []types.Source{{
+					ImageSourceLocation: types.ImageSourceLocation{
+						Manifest:       "base/tekton-base.yaml",
+						ManifestDigest: "d0f6dc1dc7afe7f8725075ee07f6bf8eb01dd246f41ea404ed32e9ab023425ba",
+						NodePath:       []string{"spec", "template", "spec", "containers", "image"},
+						Line:           75,
+						Column:         18,
+					},
+					OriginalRef: "ghcr.io/tektoncd/pipeline/controller-10a3e32792f33651396d02b6855a6e36:v1.6.0@sha256:84efabe03a5e5441379171d5c071bc28612aa7656ec4f508b01d89ee431e4141",
+				}},
+				OriginalName: "ghcr.io/tektoncd/pipeline/controller-10a3e32792f33651396d02b6855a6e36",
+				OriginalTag:  "v1.6.0",
+				Digest:       "sha256:84efabe03a5e5441379171d5c071bc28612aa7656ec4f508b01d89ee431e4141",
+			},
+			{
+				Sources: []types.Source{{
+					ImageSourceLocation: types.ImageSourceLocation{
+						Manifest:       "base/tekton-base.yaml",
+						ManifestDigest: "d0f6dc1dc7afe7f8725075ee07f6bf8eb01dd246f41ea404ed32e9ab023425ba",
 						NodePath:       []string{"spec", "template", "spec", "containers", "image"},
 						Line:           79,
-						Column:         16,
+						Column:         18,
 					},
-					OriginalRef: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/webhook:v0.40.2@sha256:6b8aadbdcede63969ecb719e910b55b7681d87110fc0bf92ca4ee943042f620b",
+					OriginalRef: "ghcr.io/tektoncd/pipeline/webhook-d4749e605405422fd87700164e31b2d1:v1.6.0@sha256:c326a2f5c4988abcfd67b5a8edd5525da2110f2b8d3f6c50c27f8d25a721e566",
 				}},
-				OriginalName: "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/webhook",
-				OriginalTag:  "v0.40.2",
-				Digest:       "sha256:6b8aadbdcede63969ecb719e910b55b7681d87110fc0bf92ca4ee943042f620b",
+				OriginalName: "ghcr.io/tektoncd/pipeline/webhook-d4749e605405422fd87700164e31b2d1",
+				OriginalTag:  "v1.6.0",
+				Digest:       "sha256:c326a2f5c4988abcfd67b5a8edd5525da2110f2b8d3f6c50c27f8d25a721e566",
 			},
 		},
 	},
@@ -288,8 +318,11 @@ var baseCasesAliases = map[string]string{
 	"docker.io/envoyproxy/envoy:v1.25.1":          "envoy",
 	"ghcr.io/fluxcd/kustomize-controller:v0.30.0": "kustomize-controller",
 	"ghcr.io/fluxcd/source-controller:v0.31.0":    "source-controller",
-	"gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/webhook:v0.40.2@sha256:6b8aadbdcede63969ecb719e910b55b7681d87110fc0bf92ca4ee943042f620b":    "webhook",
-	"gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/controller:v0.40.2@sha256:dc7bc7d6607466b502d8dc22ba0598461d7477f608ab68aaff1ff4dedaa04f81": "controller",
+
+	"ghcr.io/tektoncd/pipeline/controller-10a3e32792f33651396d02b6855a6e36:v1.6.0@sha256:84efabe03a5e5441379171d5c071bc28612aa7656ec4f508b01d89ee431e4141": "controller-10a3e32792f33651396d02b6855a6e36",
+	"ghcr.io/tektoncd/pipeline/events-a9042f7efb0cbade2a868a1ee5ddd52c:v1.6.0@sha256:a601df6f1ef7f031b004b108eb2d7c215577b3b5231a43fa6b0ae6bf5af31025":     "events-a9042f7efb0cbade2a868a1ee5ddd52c",
+	"ghcr.io/tektoncd/pipeline/resolvers-ff86b24f130c42b88983d3c13993056d:v1.6.0@sha256:e77cc55c6e507c393be029335c765c6c34238ee48b49379428da3d01713e9293":  "resolvers-ff86b24f130c42b88983d3c13993056d",
+	"ghcr.io/tektoncd/pipeline/webhook-d4749e605405422fd87700164e31b2d1:v1.6.0@sha256:c326a2f5c4988abcfd67b5a8edd5525da2110f2b8d3f6c50c27f8d25a721e566":    "webhook-d4749e605405422fd87700164e31b2d1",
 }
 
 func BaseYAMLCases() TestCases {

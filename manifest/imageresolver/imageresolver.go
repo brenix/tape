@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	kimage "sigs.k8s.io/kustomize/api/image"
-
+	"github.com/errordeveloper/tape/manifest/imageutil"
 	"github.com/errordeveloper/tape/manifest/types"
 	"github.com/errordeveloper/tape/oci"
 )
@@ -73,7 +72,7 @@ func (c *RegistryResolver) FindRelatedTags(ctx context.Context, images *types.Im
 			if relatedImage.Digest == "" {
 				return nil, fmt.Errorf("related image %s has no digest", relatedImage.URL)
 			}
-			name, tag, _ := kimage.Split(relatedImage.URL)
+			name, tag, _ := imageutil.Split(relatedImage.URL)
 			err := result.AppendWithRelationTo(image, types.Image{
 				Sources: []types.Source{{
 					OriginalRef: relatedImage.URL,

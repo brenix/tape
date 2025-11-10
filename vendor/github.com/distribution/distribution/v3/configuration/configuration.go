@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // Configuration is a versioned registry configuration, intended to be provided by a yaml file, and
@@ -21,31 +23,7 @@ type Configuration struct {
 
 	// Log supports setting various parameters related to the logging
 	// subsystem.
-	Log struct {
-		// AccessLog configures access logging.
-		AccessLog struct {
-			// Disabled disables access logging.
-			Disabled bool `yaml:"disabled,omitempty"`
-		} `yaml:"accesslog,omitempty"`
-
-		// Level is the granularity at which registry operations are logged.
-		Level Loglevel `yaml:"level,omitempty"`
-
-		// Formatter overrides the default formatter with another. Options
-		// include "text", "json" and "logstash".
-		Formatter string `yaml:"formatter,omitempty"`
-
-		// Fields allows users to specify static string fields to include in
-		// the logger context.
-		Fields map[string]interface{} `yaml:"fields,omitempty"`
-
-		// Hooks allows users to configure the log hooks, to enabling the
-		// sequent handling behavior, when defined levels of log message emit.
-		Hooks []LogHook `yaml:"hooks,omitempty"`
-
-		// ReportCaller allows user to configure the log to report the caller
-		ReportCaller bool `yaml:"reportcaller,omitempty"`
-	}
+	Log Log `yaml:"log"`
 
 	// Loglevel is the level at which registry operations are logged.
 	//
@@ -62,220 +40,229 @@ type Configuration struct {
 	// Middleware lists all middlewares to be used by the registry.
 	Middleware map[string][]Middleware `yaml:"middleware,omitempty"`
 
-	// Reporting is the configuration for error reporting
-	Reporting Reporting `yaml:"reporting,omitempty"`
-
 	// HTTP contains configuration parameters for the registry's http
 	// interface.
-	HTTP struct {
-		// Addr specifies the bind address for the registry instance.
-		Addr string `yaml:"addr,omitempty"`
-
-		// Net specifies the net portion of the bind address. A default empty value means tcp.
-		Net string `yaml:"net,omitempty"`
-
-		// Host specifies an externally-reachable address for the registry, as a fully
-		// qualified URL.
-		Host string `yaml:"host,omitempty"`
-
-		Prefix string `yaml:"prefix,omitempty"`
-
-		// Secret specifies the secret key which HMAC tokens are created with.
-		Secret string `yaml:"secret,omitempty"`
-
-		// RelativeURLs specifies that relative URLs should be returned in
-		// Location headers
-		RelativeURLs bool `yaml:"relativeurls,omitempty"`
-
-		// Amount of time to wait for connection to drain before shutting down when registry
-		// receives a stop signal
-		DrainTimeout time.Duration `yaml:"draintimeout,omitempty"`
-
-		// TLS instructs the http server to listen with a TLS configuration.
-		// This only support simple tls configuration with a cert and key.
-		// Mostly, this is useful for testing situations or simple deployments
-		// that require tls. If more complex configurations are required, use
-		// a proxy or make a proposal to add support here.
-		TLS struct {
-			// Certificate specifies the path to an x509 certificate file to
-			// be used for TLS.
-			Certificate string `yaml:"certificate,omitempty"`
-
-			// Key specifies the path to the x509 key file, which should
-			// contain the private portion for the file specified in
-			// Certificate.
-			Key string `yaml:"key,omitempty"`
-
-			// Specifies the CA certs for client authentication
-			// A file may contain multiple CA certificates encoded as PEM
-			ClientCAs []string `yaml:"clientcas,omitempty"`
-
-			// Specifies the lowest TLS version allowed
-			MinimumTLS string `yaml:"minimumtls,omitempty"`
-
-			// Specifies a list of cipher suites allowed
-			CipherSuites []string `yaml:"ciphersuites,omitempty"`
-
-			// LetsEncrypt is used to configuration setting up TLS through
-			// Let's Encrypt instead of manually specifying certificate and
-			// key. If a TLS certificate is specified, the Let's Encrypt
-			// section will not be used.
-			LetsEncrypt struct {
-				// CacheFile specifies cache file to use for lets encrypt
-				// certificates and keys.
-				CacheFile string `yaml:"cachefile,omitempty"`
-
-				// Email is the email to use during Let's Encrypt registration
-				Email string `yaml:"email,omitempty"`
-
-				// Hosts specifies the hosts which are allowed to obtain Let's
-				// Encrypt certificates.
-				Hosts []string `yaml:"hosts,omitempty"`
-
-				// DirectoryURL points to the CA directory endpoint.
-				// If empty, LetsEncrypt is used.
-				DirectoryURL string `yaml:"directoryurl,omitempty"`
-			} `yaml:"letsencrypt,omitempty"`
-		} `yaml:"tls,omitempty"`
-
-		// Headers is a set of headers to include in HTTP responses. A common
-		// use case for this would be security headers such as
-		// Strict-Transport-Security. The map keys are the header names, and
-		// the values are the associated header payloads.
-		Headers http.Header `yaml:"headers,omitempty"`
-
-		// Debug configures the http debug interface, if specified. This can
-		// include services such as pprof, expvar and other data that should
-		// not be exposed externally. Left disabled by default.
-		Debug struct {
-			// Addr specifies the bind address for the debug server.
-			Addr string `yaml:"addr,omitempty"`
-			// Prometheus configures the Prometheus telemetry endpoint.
-			Prometheus struct {
-				Enabled bool   `yaml:"enabled,omitempty"`
-				Path    string `yaml:"path,omitempty"`
-			} `yaml:"prometheus,omitempty"`
-		} `yaml:"debug,omitempty"`
-
-		// HTTP2 configuration options
-		HTTP2 struct {
-			// Specifies whether the registry should disallow clients attempting
-			// to connect via http2. If set to true, only http/1.1 is supported.
-			Disabled bool `yaml:"disabled,omitempty"`
-		} `yaml:"http2,omitempty"`
-	} `yaml:"http,omitempty"`
+	HTTP HTTP `yaml:"http,omitempty"`
 
 	// Notifications specifies configuration about various endpoint to which
 	// registry events are dispatched.
 	Notifications Notifications `yaml:"notifications,omitempty"`
 
 	// Redis configures the redis pool available to the registry webapp.
-	Redis struct {
-		// Addr specifies the the redis instance available to the application.
-		Addr string `yaml:"addr,omitempty"`
+	Redis Redis `yaml:"redis,omitempty"`
 
-		// Password string to use when making a connection.
-		Password string `yaml:"password,omitempty"`
+	// Health provides the configuration section for health checks.
+	// It allows defining various checks to monitor the health of different subsystems.
+	Health Health `yaml:"health,omitempty"`
 
-		// DB specifies the database to connect to on the redis instance.
-		DB int `yaml:"db,omitempty"`
-
-		// TLS configures settings for redis in-transit encryption
-		TLS struct {
-			Enabled bool `yaml:"enabled,omitempty"`
-		} `yaml:"tls,omitempty"`
-
-		DialTimeout  time.Duration `yaml:"dialtimeout,omitempty"`  // timeout for connect
-		ReadTimeout  time.Duration `yaml:"readtimeout,omitempty"`  // timeout for reads of data
-		WriteTimeout time.Duration `yaml:"writetimeout,omitempty"` // timeout for writes of data
-
-		// Pool configures the behavior of the redis connection pool.
-		Pool struct {
-			// MaxIdle sets the maximum number of idle connections.
-			MaxIdle int `yaml:"maxidle,omitempty"`
-
-			// MaxActive sets the maximum number of connections that should be
-			// opened before blocking a connection request.
-			MaxActive int `yaml:"maxactive,omitempty"`
-
-			// IdleTimeout sets the amount time to wait before closing
-			// inactive connections.
-			IdleTimeout time.Duration `yaml:"idletimeout,omitempty"`
-		} `yaml:"pool,omitempty"`
-	} `yaml:"redis,omitempty"`
-
-	Health  Health  `yaml:"health,omitempty"`
+	// Catalog is composed of MaxEntries.
+	// Catalog endpoint (/v2/_catalog) configuration, it provides the configuration
+	// options to control the maximum number of entries returned by the catalog endpoint.
 	Catalog Catalog `yaml:"catalog,omitempty"`
 
+	// Proxy defines the configuration options for using the registry as a pull-through cache.
 	Proxy Proxy `yaml:"proxy,omitempty"`
 
-	// Compatibility is used for configurations of working with older or deprecated features.
-	Compatibility struct {
-		// Schema1 configures how schema1 manifests will be handled.
-		//
-		// Deprecated: Docker Image Manifest v2, Schema 1 is deprecated since
-		// 2015. These options should only be used if you need to provide
-		// backward compatibility.
-		Schema1 struct {
-			// TrustKey is the signing key to use for adding the signature to
-			// schema1 manifests.
-			//
-			// Deprecated: Docker Image Manifest v2, Schema 1 is deprecated since
-			// 2015. These options should only be used if you need to provide
-			// backward compatibility.
-			TrustKey string `yaml:"signingkeyfile,omitempty"`
-			// Enabled determines if schema1 manifests should be pullable.
-			//
-			// Deprecated: Docker Image Manifest v2, Schema 1 is deprecated since
-			// 2015. These options should only be used if you need to provide
-			// backward compatibility.
-			Enabled bool `yaml:"enabled,omitempty"`
-		} `yaml:"schema1,omitempty"`
-	} `yaml:"compatibility,omitempty"`
-
 	// Validation configures validation options for the registry.
-	Validation struct {
-		// Enabled enables the other options in this section. This field is
-		// deprecated in favor of Disabled.
-		Enabled bool `yaml:"enabled,omitempty"`
-		// Disabled disables the other options in this section.
-		Disabled bool `yaml:"disabled,omitempty"`
-		// Manifests configures manifest validation.
-		Manifests struct {
-			// URLs configures validation for URLs in pushed manifests.
-			URLs struct {
-				// Allow specifies regular expressions (https://godoc.org/regexp/syntax)
-				// that URLs in pushed manifests must match.
-				Allow []string `yaml:"allow,omitempty"`
-				// Deny specifies regular expressions (https://godoc.org/regexp/syntax)
-				// that URLs in pushed manifests must not match.
-				Deny []string `yaml:"deny,omitempty"`
-			} `yaml:"urls,omitempty"`
-		} `yaml:"manifests,omitempty"`
-	} `yaml:"validation,omitempty"`
+	Validation Validation `yaml:"validation,omitempty"`
 
 	// Policy configures registry policy options.
-	Policy struct {
-		// Repository configures policies for repositories
-		Repository struct {
-			// Classes is a list of repository classes which the
-			// registry allows content for. This class is matched
-			// against the configuration media type inside uploaded
-			// manifests. When non-empty, the registry will enforce
-			// the class in authorized resources.
-			Classes []string `yaml:"classes"`
-		} `yaml:"repository,omitempty"`
-	} `yaml:"policy,omitempty"`
+	Policy Policy `yaml:"policy,omitempty"`
 }
 
-// Catalog is composed of MaxEntries.
-// Catalog endpoint (/v2/_catalog) configuration, it provides the configuration
-// options to control the maximum number of entries returned by the catalog endpoint.
+// Policy defines configuration options for managing registry policies.
+type Policy struct {
+	// Repository configures policies for repositories
+	Repository Repository `yaml:"repository,omitempty"`
+}
+
+// Repository defines configuration options related to repository policies in the registry.
+type Repository struct {
+	// Classes is a list of repository classes that the registry allows content for.
+	// This value is matched against the media type in uploaded manifests.
+	// If this field is non-empty, the registry enforces that all uploaded
+	// content belongs to one of the specified classes.
+	Classes []string `yaml:"classes"`
+}
+
+// Catalog provides configuration options for the /v2/_catalog endpoint.
 type Catalog struct {
 	// Max number of entries returned by the catalog endpoint. Requesting n entries
 	// to the catalog endpoint will return at most MaxEntries entries.
 	// An empty or a negative value will set a default of 1000 maximum entries by default.
 	MaxEntries int `yaml:"maxentries,omitempty"`
+}
+
+// Log represents the configuration for logging within the application.
+type Log struct {
+	// AccessLog configures access logging.
+	AccessLog AccessLog `yaml:"accesslog,omitempty"`
+
+	// Level is the granularity at which registry operations are logged.
+	Level Loglevel `yaml:"level,omitempty"`
+
+	// Formatter overrides the default formatter with another. Options
+	// include "text", "json" and "logstash".
+	Formatter string `yaml:"formatter,omitempty"`
+
+	// Fields allows users to specify static string fields to include in
+	// the logger context.
+	Fields map[string]interface{} `yaml:"fields,omitempty"`
+
+	// Hooks allows users to configure the log hooks, to enabling the
+	// sequent handling behavior, when defined levels of log message emit.
+	Hooks []LogHook `yaml:"hooks,omitempty"`
+
+	// ReportCaller allows user to configure the log to report the caller
+	ReportCaller bool `yaml:"reportcaller,omitempty"`
+}
+
+// AccessLog configures options for access logging.
+type AccessLog struct {
+	// Disabled disables access logging.
+	Disabled bool `yaml:"disabled,omitempty"`
+}
+
+// HTTP defines configuration options for the HTTP interface of the registry.
+type HTTP struct {
+	// Addr specifies the bind address for the registry instance.
+	Addr string `yaml:"addr,omitempty"`
+
+	// Net specifies the net portion of the bind address. A default empty value means tcp.
+	Net string `yaml:"net,omitempty"`
+
+	// Host specifies an externally-reachable address for the registry, as a fully
+	// qualified URL.
+	Host string `yaml:"host,omitempty"`
+
+	// Prefix specifies a URL path prefix for the HTTP interface.
+	// This can be used to serve the registry under a specific path
+	// rather than at the root of the domain (e.g., "/registry").
+	Prefix string `yaml:"prefix,omitempty"`
+
+	// Secret specifies the secret key which HMAC tokens are created with.
+	Secret string `yaml:"secret,omitempty"`
+
+	// RelativeURLs specifies that relative URLs should be returned in
+	// Location headers
+	RelativeURLs bool `yaml:"relativeurls,omitempty"`
+
+	// Amount of time to wait for connection to drain before shutting down when registry
+	// receives a stop signal
+	DrainTimeout time.Duration `yaml:"draintimeout,omitempty"`
+
+	// TLS instructs the http server to listen with a TLS configuration.
+	// This only support simple tls configuration with a cert and key.
+	// Mostly, this is useful for testing situations or simple deployments
+	// that require tls. If more complex configurations are required, use
+	// a proxy or make a proposal to add support here.
+	TLS TLS `yaml:"tls,omitempty"`
+
+	// Headers is a set of headers to include in HTTP responses. A common
+	// use case for this would be security headers such as
+	// Strict-Transport-Security. The map keys are the header names, and
+	// the values are the associated header payloads.
+	Headers http.Header `yaml:"headers,omitempty"`
+
+	// Debug configures the http debug interface, if specified. This can
+	// include services such as pprof, expvar and other data that should
+	// not be exposed externally. Left disabled by default.
+	Debug Debug `yaml:"debug,omitempty"`
+
+	// HTTP2 configures options for HTTP/2 support.
+	HTTP2 HTTP2 `yaml:"http2,omitempty"`
+
+	// H2C configures support for HTTP/2 without requiring TLS (HTTP/2 Cleartext).
+	H2C H2C `yaml:"h2c,omitempty"`
+}
+
+// Debug defines the configuration options for the registry's debug interface.
+// It allows administrators to enable or disable the debug server and configure
+// telemetry and monitoring endpoints such as Prometheus.
+type Debug struct {
+	// Addr specifies the bind address for the debug server.
+	Addr string `yaml:"addr,omitempty"`
+
+	// Prometheus configures the Prometheus telemetry endpoint for monitoring purposes.
+	Prometheus Prometheus `yaml:"prometheus,omitempty"`
+}
+
+// Prometheus configures the Prometheus telemetry endpoint for the registry.
+// It allows administrators to enable Prometheus monitoring and customize
+// the scrape path for metric collection.
+type Prometheus struct {
+	// Enabled determines whether Prometheus telemetry is enabled or not.
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// Path specifies the URL path where the Prometheus metrics are exposed.
+	// The default is "/metrics", but it can be customized here.
+	Path string `yaml:"path,omitempty"`
+}
+
+// HTTP2 configures options.
+type HTTP2 struct {
+	// Specifies whether the registry should disallow clients attempting
+	// to connect via HTTP/2. If set to true, only HTTP/1.1 is supported.
+	Disabled bool `yaml:"disabled,omitempty"`
+}
+
+// H2C configures support for HTTP/2 Cleartext.
+type H2C struct {
+	// Enables H2C (HTTP/2 Cleartext). Enable to support HTTP/2 without needing to configure TLS
+	// Useful when deploying the registry behind a load balancer (e.g. Cloud Run)
+	Enabled bool `yaml:"enabled,omitempty"`
+}
+
+// TLS defines the configuration options for enabling and configuring TLS (Transport Layer Security)
+// for secure communication between the registry and clients. It allows the registry to listen for
+// HTTPS connections with a specified certificate, key, and optional client authentication settings.
+type TLS struct {
+	// Certificate specifies the path to an x509 certificate file to
+	// be used for TLS.
+	Certificate string `yaml:"certificate,omitempty"`
+
+	// Key specifies the path to the x509 key file, which should
+	// contain the private portion for the file specified in
+	// Certificate.
+	Key string `yaml:"key,omitempty"`
+
+	// Specifies the CA certs for client authentication
+	// A file may contain multiple CA certificates encoded as PEM
+	ClientCAs []string `yaml:"clientcas,omitempty"`
+
+	// Client certificate authentication mode
+	// One of: request-client-cert, require-any-client-cert, verify-client-cert-if-given, require-and-verify-client-cert
+	ClientAuth ClientAuth `yaml:"clientauth,omitempty"`
+
+	// Specifies the lowest TLS version allowed
+	MinimumTLS string `yaml:"minimumtls,omitempty"`
+
+	// Specifies a list of cipher suites allowed
+	CipherSuites []string `yaml:"ciphersuites,omitempty"`
+
+	// LetsEncrypt is used to configuration setting up TLS through
+	// Let's Encrypt instead of manually specifying certificate and
+	// key. If a TLS certificate is specified, the Let's Encrypt
+	// section will not be used.
+	LetsEncrypt LetsEncrypt `yaml:"letsencrypt,omitempty"`
+}
+
+// LetsEncrypt configures automatic TLS certificate provisioning using Let's Encrypt.
+type LetsEncrypt struct {
+	// CacheFile specifies cache file to use for lets encrypt
+	// certificates and keys.
+	CacheFile string `yaml:"cachefile,omitempty"`
+
+	// Email is the email to use during Let's Encrypt registration
+	Email string `yaml:"email,omitempty"`
+
+	// Hosts specifies the hosts which are allowed to obtain Let's
+	// Encrypt certificates.
+	Hosts []string `yaml:"hosts,omitempty"`
+
+	// DirectoryURL points to the CA directory endpoint.
+	// If empty, LetsEncrypt is used.
+	DirectoryURL string `yaml:"directoryurl,omitempty"`
 }
 
 // LogHook is composed of hook Level and Type.
@@ -298,19 +285,8 @@ type LogHook struct {
 
 // MailOptions provides the configuration sections to user, for specific handler.
 type MailOptions struct {
-	SMTP struct {
-		// Addr defines smtp host address
-		Addr string `yaml:"addr,omitempty"`
-
-		// Username defines user name to smtp host
-		Username string `yaml:"username,omitempty"`
-
-		// Password defines password of login user
-		Password string `yaml:"password,omitempty"`
-
-		// Insecure defines if smtp login skips the secure certification.
-		Insecure bool `yaml:"insecure,omitempty"`
-	} `yaml:"smtp,omitempty"`
+	// SMTP defines the configuration options for the SMTP server used for sending email notifications.
+	SMTP SMTP `yaml:"smtp,omitempty"`
 
 	// From defines mail sending address
 	From string `yaml:"from,omitempty"`
@@ -319,12 +295,31 @@ type MailOptions struct {
 	To []string `yaml:"to,omitempty"`
 }
 
+// SMTP represents the configuration for an SMTP (Simple Mail Transfer Protocol) server
+// used for sending emails. It includes settings for the SMTP server's address, authentication,
+// and other relevant configurations needed to connect and send emails.
+type SMTP struct {
+	// Addr defines smtp host address
+	Addr string `yaml:"addr,omitempty"`
+
+	// Username defines user name to smtp host
+	Username string `yaml:"username,omitempty"`
+
+	// Password defines password of login user
+	Password string `yaml:"password,omitempty"`
+
+	// Insecure defines if smtp login skips the secure certification.
+	Insecure bool `yaml:"insecure,omitempty"`
+}
+
 // FileChecker is a type of entry in the health section for checking files.
 type FileChecker struct {
 	// Interval is the duration in between checks
 	Interval time.Duration `yaml:"interval,omitempty"`
+
 	// File is the path to check
 	File string `yaml:"file,omitempty"`
+
 	// Threshold is the number of times a check must fail to trigger an
 	// unhealthy state
 	Threshold int `yaml:"threshold,omitempty"`
@@ -334,14 +329,19 @@ type FileChecker struct {
 type HTTPChecker struct {
 	// Timeout is the duration to wait before timing out the HTTP request
 	Timeout time.Duration `yaml:"timeout,omitempty"`
+
 	// StatusCode is the expected status code
 	StatusCode int
+
 	// Interval is the duration in between checks
 	Interval time.Duration `yaml:"interval,omitempty"`
+
 	// URI is the HTTP URI to check
 	URI string `yaml:"uri,omitempty"`
+
 	// Headers lists static headers that should be added to all requests
 	Headers http.Header `yaml:"headers"`
+
 	// Threshold is the number of times a check must fail to trigger an
 	// unhealthy state
 	Threshold int `yaml:"threshold,omitempty"`
@@ -351,10 +351,13 @@ type HTTPChecker struct {
 type TCPChecker struct {
 	// Timeout is the duration to wait before timing out the TCP connection
 	Timeout time.Duration `yaml:"timeout,omitempty"`
+
 	// Interval is the duration in between checks
 	Interval time.Duration `yaml:"interval,omitempty"`
+
 	// Addr is the TCP address to check
 	Addr string `yaml:"addr,omitempty"`
+
 	// Threshold is the number of times a check must fail to trigger an
 	// unhealthy state
 	Threshold int `yaml:"threshold,omitempty"`
@@ -364,21 +367,42 @@ type TCPChecker struct {
 type Health struct {
 	// FileCheckers is a list of paths to check
 	FileCheckers []FileChecker `yaml:"file,omitempty"`
+
 	// HTTPCheckers is a list of URIs to check
 	HTTPCheckers []HTTPChecker `yaml:"http,omitempty"`
+
 	// TCPCheckers is a list of URIs to check
 	TCPCheckers []TCPChecker `yaml:"tcp,omitempty"`
+
 	// StorageDriver configures a health check on the configured storage
 	// driver
-	StorageDriver struct {
-		// Enabled turns on the health check for the storage driver
-		Enabled bool `yaml:"enabled,omitempty"`
-		// Interval is the duration in between checks
-		Interval time.Duration `yaml:"interval,omitempty"`
-		// Threshold is the number of times a check must fail to trigger an
-		// unhealthy state
-		Threshold int `yaml:"threshold,omitempty"`
-	} `yaml:"storagedriver,omitempty"`
+	StorageDriver StorageDriver `yaml:"storagedriver,omitempty"`
+}
+
+// StorageDriver configures health checks specific to the storage driver.
+type StorageDriver struct {
+	// Enabled turns on the health check for the storage driver
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// Interval is the duration in between checks
+	Interval time.Duration `yaml:"interval,omitempty"`
+
+	// Threshold is the number of times a check must fail to trigger an
+	// unhealthy state
+	Threshold int `yaml:"threshold,omitempty"`
+}
+
+// Platform specifies the characteristics of a computing environment
+// and allows registry administrators to define required platforms for image validation.
+// Administrators can select specific architectures and operating systems that must exist
+// in the registry. This ensures that all image indexes uploaded to the registry are valid
+// for the specified platforms.
+type Platform struct {
+	// Architecture is the architecture for this platform
+	Architecture string `yaml:"architecture,omitempty"`
+
+	// OS is the operating system for this platform
+	OS string `yaml:"os,omitempty"`
 }
 
 // v0_1Configuration is a Version 0.1 Configuration struct
@@ -456,6 +480,8 @@ func (storage Storage) Type() string {
 			// allow configuration of delete
 		case "redirect":
 			// allow configuration of redirect
+		case "tag":
+			// allow configuration of tag
 		default:
 			storageType = append(storageType, k)
 		}
@@ -467,6 +493,19 @@ func (storage Storage) Type() string {
 		return storageType[0]
 	}
 	return ""
+}
+
+// TagParameters returns the Parameters map for a Storage tag configuration
+func (storage Storage) TagParameters() Parameters {
+	return storage["tag"]
+}
+
+// setTagParameter changes the parameter at the provided key to the new value
+func (storage Storage) setTagParameter(key string, value interface{}) {
+	if _, ok := storage["tag"]; !ok {
+		storage["tag"] = make(Parameters)
+	}
+	storage["tag"][key] = value
 }
 
 // Parameters returns the Parameters map for a Storage configuration
@@ -497,6 +536,8 @@ func (storage *Storage) UnmarshalYAML(unmarshal func(interface{}) error) error {
 					// allow configuration of delete
 				case "redirect":
 					// allow configuration of redirect
+				case "tag":
+					// allow configuration of tag
 				default:
 					types = append(types, k)
 				}
@@ -624,35 +665,6 @@ type Ignore struct {
 	Actions    []string `yaml:"actions"`    // ignore action types
 }
 
-// Reporting defines error reporting methods.
-type Reporting struct {
-	// Bugsnag configures error reporting for Bugsnag (bugsnag.com).
-	Bugsnag BugsnagReporting `yaml:"bugsnag,omitempty"`
-	// NewRelic configures error reporting for NewRelic (newrelic.com)
-	NewRelic NewRelicReporting `yaml:"newrelic,omitempty"`
-}
-
-// BugsnagReporting configures error reporting for Bugsnag (bugsnag.com).
-type BugsnagReporting struct {
-	// APIKey is the Bugsnag api key.
-	APIKey string `yaml:"apikey,omitempty"`
-	// ReleaseStage tracks where the registry is deployed.
-	// Examples: production, staging, development
-	ReleaseStage string `yaml:"releasestage,omitempty"`
-	// Endpoint is used for specifying an enterprise Bugsnag endpoint.
-	Endpoint string `yaml:"endpoint,omitempty"`
-}
-
-// NewRelicReporting configures error reporting for NewRelic (newrelic.com)
-type NewRelicReporting struct {
-	// LicenseKey is the NewRelic user license key
-	LicenseKey string `yaml:"licensekey,omitempty"`
-	// Name is the component name of the registry in NewRelic
-	Name string `yaml:"name,omitempty"`
-	// Verbose configures debug output to STDOUT
-	Verbose bool `yaml:"verbose,omitempty"`
-}
-
 // Middleware configures named middlewares to be applied at injection points.
 type Middleware struct {
 	// Name the middleware registers itself as
@@ -674,10 +686,98 @@ type Proxy struct {
 	// Password of the hub user
 	Password string `yaml:"password"`
 
+	// Exec specifies a custom exec-based command to retrieve credentials.
+	// If set, Username and Password are ignored.
+	Exec *ExecConfig `yaml:"exec,omitempty"`
+
 	// TTL is the expiry time of the content and will be cleaned up when it expires
 	// if not set, defaults to 7 * 24 hours
 	// If set to zero, will never expire cache
 	TTL *time.Duration `yaml:"ttl,omitempty"`
+}
+
+// ExecConfig defines the configuration for executing a command as a credential helper.
+// This allows the registry to authenticate against an upstream registry by executing a
+// specified command to obtain credentials. The command can be re-executed based on the
+// configured lifetime, enabling the registry to run as a pull-through cache that manages
+// its authentication dynamically.
+type ExecConfig struct {
+	// Command is the command to execute.
+	Command string `yaml:"command"`
+
+	// Lifetime is the expiry period of the credentials. The credentials
+	// returned by the command is reused through the configured lifetime, then
+	// the command will be re-executed to retrieve new credentials.
+	// If set to zero, the command will be executed for every request.
+	// If not set, the command will only be executed once.
+	Lifetime *time.Duration `yaml:"lifetime,omitempty"`
+}
+
+// Validation configures validation options for the registry.
+type Validation struct {
+	// Enabled enables the other options in this section. This field is
+	// deprecated in favor of Disabled.
+	Enabled bool `yaml:"enabled,omitempty"`
+
+	// Disabled disables the other options in this section.
+	Disabled bool `yaml:"disabled,omitempty"`
+
+	// Manifests configures manifest validation.
+	Manifests ValidationManifests `yaml:"manifests,omitempty"`
+}
+
+// ValidationManifests configures validation rules for manifests pushed to the registry.
+type ValidationManifests struct {
+	// URLs configures validation for URLs in pushed manifests.
+	URLs URLs `yaml:"urls,omitempty"`
+
+	// ImageIndexes configures validation of image indexes
+	Indexes ValidationIndexes `yaml:"indexes,omitempty"`
+}
+
+// URLs defines validation rules for URLs found in the manifests pushed to the registry.
+type URLs struct {
+	// Allow specifies regular expressions (https://godoc.org/regexp/syntax)
+	// that URLs in pushed manifests must match.
+	Allow []string `yaml:"allow,omitempty"`
+
+	// Deny specifies regular expressions (https://godoc.org/regexp/syntax)
+	// that URLs in pushed manifests must not match.
+	Deny []string `yaml:"deny,omitempty"`
+}
+
+// ValidationIndexes configures validation rules for image indexes within the manifest.
+type ValidationIndexes struct {
+	// Platforms configures the validation applies to the platform images included in an image index
+	Platforms Platforms `yaml:"platforms"`
+
+	// PlatformList filters the set of platforms to validate for image existence.
+	PlatformList []Platform `yaml:"platformlist,omitempty"`
+}
+
+// Platforms configures the validation applies to the platform images included in an image index
+// This can be all, none, or list
+type Platforms string
+
+// UnmarshalYAML implements the yaml.Umarshaler interface
+// Unmarshals a string into a Platforms option, lowercasing the string and validating that it represents a
+// valid option
+func (platforms *Platforms) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var platformsString string
+	err := unmarshal(&platformsString)
+	if err != nil {
+		return err
+	}
+
+	platformsString = strings.ToLower(platformsString)
+	switch platformsString {
+	case "all", "none", "list":
+	default:
+		return fmt.Errorf("invalid platforms option %s Must be one of [all, none, list]", platformsString)
+	}
+
+	*platforms = Platforms(platformsString)
+	return nil
 }
 
 // Parse parses an input configuration yaml document into a Configuration struct
@@ -731,4 +831,226 @@ func Parse(rd io.Reader) (*Configuration, error) {
 	}
 
 	return config, nil
+}
+
+// RedisOptions represents the configuration options for Redis, which are
+// provided by the redis package. This struct can be used to configure the
+// connection to Redis in a universal (clustered or standalone) setup.
+type RedisOptions = redis.UniversalOptions
+
+// RedisTLSOptions configures the TLS (Transport Layer Security) settings for
+// Redis connections, allowing secure communication over the network.
+type RedisTLSOptions struct {
+	// Certificate specifies the path to the certificate file for TLS authentication.
+	// This certificate is used to establish a secure connection with the Redis server.
+	Certificate string `yaml:"certificate,omitempty"`
+
+	// Key specifies the path to the private key file associated with the certificate.
+	// This key is used to authenticate the client during the TLS handshake.
+	Key string `yaml:"key,omitempty"`
+
+	// ClientCAs specifies a list of certificates to be used to verify the server's
+	// certificate during the TLS handshake. This can be used for mutual TLS authentication.
+	ClientCAs []string `yaml:"clientcas,omitempty"`
+}
+
+// Redis represents the configuration for connecting to a Redis server. It includes
+// both the basic connection options and optional TLS settings to secure the connection.
+type Redis struct {
+	// Options provides the configuration for connecting to Redis, including
+	// options for both clustered and standalone Redis setups. It is provided inline
+	// from the `redis.UniversalOptions` struct.
+	Options RedisOptions `yaml:",inline"`
+
+	// TLS contains the TLS settings for secure communication with the Redis server.
+	// If specified, these settings will enable encryption and authentication via TLS.
+	TLS RedisTLSOptions `yaml:"tls,omitempty"`
+}
+
+func (c Redis) MarshalYAML() (interface{}, error) {
+	fields := make(map[string]interface{})
+
+	val := reflect.ValueOf(c.Options)
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := typ.Field(i)
+		fieldValue := val.Field(i)
+
+		// ignore funcs fields in redis.UniversalOptions
+		if fieldValue.Kind() == reflect.Func {
+			continue
+		}
+
+		fields[strings.ToLower(field.Name)] = fieldValue.Interface()
+	}
+
+	// Add TLS fields if they're not empty
+	if c.TLS.Certificate != "" || c.TLS.Key != "" || len(c.TLS.ClientCAs) > 0 {
+		fields["tls"] = c.TLS
+	}
+
+	return fields, nil
+}
+
+func (c *Redis) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var fields map[string]interface{}
+	err := unmarshal(&fields)
+	if err != nil {
+		return err
+	}
+
+	val := reflect.ValueOf(&c.Options).Elem()
+	typ := val.Type()
+
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		fieldName := strings.ToLower(field.Name)
+
+		if value, ok := fields[fieldName]; ok {
+			fieldValue := val.Field(i)
+			if fieldValue.CanSet() {
+				switch field.Type {
+				case reflect.TypeOf(time.Duration(0)):
+					durationStr, ok := value.(string)
+					if !ok {
+						return fmt.Errorf("invalid duration value for field: %s", fieldName)
+					}
+					duration, err := time.ParseDuration(durationStr)
+					if err != nil {
+						return fmt.Errorf("failed to parse duration for field: %s, error: %v", fieldName, err)
+					}
+					fieldValue.Set(reflect.ValueOf(duration))
+				default:
+					if err := setFieldValue(fieldValue, value); err != nil {
+						return fmt.Errorf("failed to set value for field: %s, error: %v", fieldName, err)
+					}
+				}
+			}
+		}
+	}
+
+	// Handle TLS fields
+	if tlsData, ok := fields["tls"]; ok {
+		tlsMap, ok := tlsData.(map[interface{}]interface{})
+		if !ok {
+			return fmt.Errorf("invalid TLS data structure")
+		}
+
+		if cert, ok := tlsMap["certificate"]; ok {
+			var isString bool
+			c.TLS.Certificate, isString = cert.(string)
+			if !isString {
+				return fmt.Errorf("Redis TLS certificate must be a string")
+			}
+		}
+		if key, ok := tlsMap["key"]; ok {
+			var isString bool
+			c.TLS.Key, isString = key.(string)
+			if !isString {
+				return fmt.Errorf("Redis TLS (private) key must be a string")
+			}
+		}
+		if cas, ok := tlsMap["clientcas"]; ok {
+			caList, ok := cas.([]interface{})
+			if !ok {
+				return fmt.Errorf("invalid clientcas data structure")
+			}
+			for _, ca := range caList {
+				if caStr, ok := ca.(string); ok {
+					c.TLS.ClientCAs = append(c.TLS.ClientCAs, caStr)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func setFieldValue(field reflect.Value, value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		stringValue, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("failed to convert value to string")
+		}
+		field.SetString(stringValue)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		intValue, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("failed to convert value to integer")
+		}
+		field.SetInt(int64(intValue))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		uintValue, ok := value.(uint)
+		if !ok {
+			return fmt.Errorf("failed to convert value to unsigned integer")
+		}
+		field.SetUint(uint64(uintValue))
+	case reflect.Float32, reflect.Float64:
+		floatValue, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("failed to convert value to float")
+		}
+		field.SetFloat(floatValue)
+	case reflect.Bool:
+		boolValue, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("failed to convert value to boolean")
+		}
+		field.SetBool(boolValue)
+	case reflect.Slice:
+		slice := reflect.MakeSlice(field.Type(), 0, 0)
+		valueSlice, ok := value.([]interface{})
+		if !ok {
+			return fmt.Errorf("failed to convert value to slice")
+		}
+		for _, item := range valueSlice {
+			sliceValue := reflect.New(field.Type().Elem()).Elem()
+			if err := setFieldValue(sliceValue, item); err != nil {
+				return err
+			}
+			slice = reflect.Append(slice, sliceValue)
+		}
+		field.Set(slice)
+	default:
+		return fmt.Errorf("unsupported field type: %v", field.Type())
+	}
+	return nil
+}
+
+const (
+	ClientAuthRequestClientCert          = "request-client-cert"
+	ClientAuthRequireAnyClientCert       = "require-any-client-cert"
+	ClientAuthVerifyClientCertIfGiven    = "verify-client-cert-if-given"
+	ClientAuthRequireAndVerifyClientCert = "require-and-verify-client-cert"
+)
+
+type ClientAuth string
+
+// UnmarshalYAML implements the yaml.Umarshaler interface
+// Unmarshals a string into a ClientAuth, validating that it represents a valid ClientAuth mod
+func (clientAuth *ClientAuth) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var clientAuthString string
+	err := unmarshal(&clientAuthString)
+	if err != nil {
+		return err
+	}
+
+	switch clientAuthString {
+	case ClientAuthRequestClientCert:
+	case ClientAuthRequireAnyClientCert:
+	case ClientAuthVerifyClientCertIfGiven:
+	case ClientAuthRequireAndVerifyClientCert:
+	default:
+		return fmt.Errorf("invalid ClientAuth %s Must be one of: %s, %s, %s, %s", clientAuthString, ClientAuthRequestClientCert, ClientAuthRequireAnyClientCert, ClientAuthVerifyClientCertIfGiven, ClientAuthRequireAndVerifyClientCert)
+	}
+
+	*clientAuth = ClientAuth(clientAuthString)
+
+	return nil
 }
